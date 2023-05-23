@@ -169,6 +169,13 @@ public class MirrorConnectorConfig extends AbstractConfig {
     private static final String EMIT_CHECKPOINTS_INTERVAL_SECONDS_DOC = "Frequency of checkpoints.";
     public static final long EMIT_CHECKPOINTS_INTERVAL_SECONDS_DEFAULT = 60;
 
+    public static final String SYNC_GROUP_OFFSETS_ENABLED = SYNC_GROUP_OFFSETS + ENABLED_SUFFIX;
+    private static final String SYNC_GROUP_OFFSETS_ENABLED_DOC = "Whether to periodically write the translated offsets to __consumer_offsets topic in target cluster, as long as no active consumers in that group are connected to the target cluster";
+    public static final boolean SYNC_GROUP_OFFSETS_ENABLED_DEFAULT = false;
+    public static final String SYNC_GROUP_OFFSETS_INTERVAL_SECONDS = SYNC_GROUP_OFFSETS + INTERVAL_SECONDS_SUFFIX;
+    private static final String SYNC_GROUP_OFFSETS_INTERVAL_SECONDS_DOC = "Frequency of consumer group offset sync.";
+    public static final long SYNC_GROUP_OFFSETS_INTERVAL_SECONDS_DEFAULT = 60;
+
     public static final String TOPIC_FILTER_CLASS = "topic.filter.class";
     private static final String TOPIC_FILTER_CLASS_DOC = "TopicFilter to use. Selects topics to replicate.";
     public static final Class TOPIC_FILTER_CLASS_DEFAULT = DefaultTopicFilter.class;
@@ -387,6 +394,14 @@ public class MirrorConnectorConfig extends AbstractConfig {
     GroupFilter groupFilter() {
         return getConfiguredInstance(GROUP_FILTER_CLASS, GroupFilter.class);
     }
+    Duration syncGroupOffsetsInterval() {
+        if (getBoolean(SYNC_GROUP_OFFSETS_ENABLED)) {
+            return Duration.ofSeconds(getLong(SYNC_GROUP_OFFSETS_INTERVAL_SECONDS));
+        } else {
+            // negative interval to disable
+            return Duration.ofMillis(-1);
+        }
+    }
 
     ConfigPropertyFilter configPropertyFilter() {
         return getConfiguredInstance(CONFIG_PROPERTY_FILTER_CLASS, ConfigPropertyFilter.class);
@@ -542,6 +557,18 @@ public class MirrorConnectorConfig extends AbstractConfig {
                     EMIT_CHECKPOINTS_INTERVAL_SECONDS_DEFAULT,
                     ConfigDef.Importance.LOW,
                     EMIT_CHECKPOINTS_INTERVAL_SECONDS_DOC)
+            .define(
+                    SYNC_GROUP_OFFSETS_ENABLED,
+                    ConfigDef.Type.BOOLEAN,
+                    SYNC_GROUP_OFFSETS_ENABLED_DEFAULT,
+                    ConfigDef.Importance.LOW,
+                    SYNC_GROUP_OFFSETS_ENABLED_DOC)
+            .define(
+                    SYNC_GROUP_OFFSETS_INTERVAL_SECONDS,
+                    ConfigDef.Type.LONG,
+                    SYNC_GROUP_OFFSETS_INTERVAL_SECONDS_DEFAULT,
+                    ConfigDef.Importance.LOW,
+                    SYNC_GROUP_OFFSETS_INTERVAL_SECONDS_DOC)
             .define(
                     REPLICATION_POLICY_CLASS,
                     ConfigDef.Type.CLASS,
