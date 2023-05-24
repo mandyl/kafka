@@ -92,6 +92,7 @@ public class MirrorCheckpointTask extends SourceTask {
         metrics = config.metrics();
         idleConsumerGroupsOffset = new HashMap<>();
         checkpointsPerConsumerGroup = new HashMap<>();
+        log.info("offsetsync config is targetClusterAlias {} , syncGroupOffsetsInterval {}", config.targetClusterAlias(), config.syncGroupOffsetsInterval());
         scheduler = new Scheduler(MirrorCheckpointTask.class, config.adminTimeout());
         scheduler.scheduleRepeating(this::refreshIdleConsumerGroupOffset, config.syncGroupOffsetsInterval(),
             "refreshing idle consumers group offsets at target cluster");
@@ -239,17 +240,20 @@ public class MirrorCheckpointTask extends SourceTask {
     }
 
     Map<String, Map<TopicPartition, OffsetAndMetadata>> syncGroupOffset() {
+        log.info("offsetsync start");
         Map<String, Map<TopicPartition, OffsetAndMetadata>> offsetToSyncAll = new HashMap<>();
 
         // first, sync offsets for the idle consumers at target
         for (Map.Entry<String, Map<TopicPartition, OffsetAndMetadata>> group : getConvertedUpstreamOffset().entrySet()) {
             String consumerGroupId = group.getKey();
+            log.info("offsetsync consumerGroupId {}", consumerGroupId);
             // for each idle consumer at target, read the checkpoints (converted upstream offset)
             // from the pre-populated map
             Map<TopicPartition, OffsetAndMetadata> convertedUpstreamOffset = group.getValue();
-
+            log.info("offsetsync convertedUpstreamOffset {}", convertedUpstreamOffset.size());
             Map<TopicPartition, OffsetAndMetadata> offsetToSync = new HashMap<>();
             Map<TopicPartition, OffsetAndMetadata> targetConsumerOffset = idleConsumerGroupsOffset.get(consumerGroupId);
+            log.info("offsetsync idleConsumerGroupsOffset {}", idleConsumerGroupsOffset.size());
             if (targetConsumerOffset == null) {
                 // this is a new consumer, just sync the offset to target
                 syncGroupOffset(consumerGroupId, convertedUpstreamOffset);
@@ -261,6 +265,8 @@ public class MirrorCheckpointTask extends SourceTask {
 
                 TopicPartition topicPartition = convertedEntry.getKey();
                 OffsetAndMetadata convertedOffset = convertedUpstreamOffset.get(topicPartition);
+                log.info("offsetsync topicPartition {}, {}", topicPartition.topic(), topicPartition.partition());
+                log.info("offsetsync convertedOffset {}", convertedOffset.offset());
                 if (!targetConsumerOffset.containsKey(topicPartition)) {
                     // if is a new topicPartition from upstream, just sync the offset to target
                     offsetToSync.put(topicPartition, convertedOffset);
@@ -271,7 +277,7 @@ public class MirrorCheckpointTask extends SourceTask {
                 // in the target, skip updating the offset for that partition
                 long latestDownstreamOffset = targetConsumerOffset.get(topicPartition).offset();
                 if (latestDownstreamOffset >= convertedOffset.offset()) {
-                    log.trace("latestDownstreamOffset {} is larger than or equal to convertedUpstreamOffset {} for "
+                    log.info("latestDownstreamOffset {} is larger than or equal to convertedUpstreamOffset {} for "
                         + "TopicPartition {}", latestDownstreamOffset, convertedOffset.offset(), topicPartition);
                     continue;
                 }
@@ -279,7 +285,7 @@ public class MirrorCheckpointTask extends SourceTask {
             }
 
             if (offsetToSync.size() == 0) {
-                log.trace("skip syncing the offset for consumer group: {}", consumerGroupId);
+                log.info("skip syncing the offset for consumer group: {}", consumerGroupId);
                 continue;
             }
             syncGroupOffset(consumerGroupId, offsetToSync);
@@ -291,24 +297,27 @@ public class MirrorCheckpointTask extends SourceTask {
     }
 
     void syncGroupOffset(String consumerGroupId, Map<TopicPartition, OffsetAndMetadata> offsetToSync) {
+        log.info("offsetsync consumerGroupId {} {}", consumerGroupId, offsetToSync.size());
         if (targetAdminClient != null) {
             targetAdminClient.alterConsumerGroupOffsets(consumerGroupId, offsetToSync);
-            log.trace("sync-ed the offset for consumer group: {} with {} number of offset entries",
+            log.info("sync-ed the offset for consumer group: {} with {} number of offset entries",
                 consumerGroupId, offsetToSync.size());
         }
     }
 
     Map<String, Map<TopicPartition, OffsetAndMetadata>> getConvertedUpstreamOffset() {
         Map<String, Map<TopicPartition, OffsetAndMetadata>> result = new HashMap<>();
-
+        log.info("offsetsync checkpointsPerConsumerGroup size {}", checkpointsPerConsumerGroup.size());
         for (Map.Entry<String, List<Checkpoint>> entry : checkpointsPerConsumerGroup.entrySet()) {
             String consumerId = entry.getKey();
             Map<TopicPartition, OffsetAndMetadata> convertedUpstreamOffset = new HashMap<>();
             for (Checkpoint checkpoint : entry.getValue()) {
+                log.info("offsetsync topicPartition {}, offsetAndMetadata {}", checkpoint.topicPartition(), checkpoint.offsetAndMetadata().offset());
                 convertedUpstreamOffset.put(checkpoint.topicPartition(), checkpoint.offsetAndMetadata());
             }
             result.put(consumerId, convertedUpstreamOffset);
         }
+        log.info("offsetsync getConvertedUpstreamOffset {}", result.size());
         return result;
     }
 }
