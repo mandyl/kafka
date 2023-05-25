@@ -14,29 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.kafka.clients.admin;
+package org.apache.kafka.common;
 
-import org.apache.kafka.common.IsolationLevel;
-import org.apache.kafka.common.annotation.InterfaceStability;
+public enum IsolationLevel {
+    READ_UNCOMMITTED((byte) 0), READ_COMMITTED((byte) 1);
 
-/**
- *
- * The API of this class is evolving, see {@link AdminClient} for details.
- */
-@InterfaceStability.Evolving
-public class ListOffsetsOptions extends AbstractOptions<ListOffsetsOptions> {
+    private final byte id;
 
-    private final IsolationLevel isolationLevel;
-
-    public ListOffsetsOptions() {
-        this(IsolationLevel.READ_UNCOMMITTED);
+    IsolationLevel(byte id) {
+        this.id = id;
     }
 
-    public ListOffsetsOptions(IsolationLevel isolationLevel) {
-        this.isolationLevel = isolationLevel;
+    public byte id() {
+        return id;
     }
 
-    public IsolationLevel isolationLevel() {
-        return isolationLevel;
+    public static IsolationLevel forId(byte id) {
+        switch (id) {
+            case 0:
+                return READ_UNCOMMITTED;
+            case 1:
+                return READ_COMMITTED;
+            default:
+                throw new IllegalArgumentException("Unknown isolation level " + id);
+        }
     }
 }
