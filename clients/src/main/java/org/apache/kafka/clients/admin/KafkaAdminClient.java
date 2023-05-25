@@ -2694,7 +2694,7 @@ public class KafkaAdminClient extends AdminClient {
                 final DescribedGroup describedGroup = describedGroups.get(0);
 
                 // If coordinator changed since we fetched it, retry
-                if (context.hasCoordinatorMoved(response)) {
+                if (ConsumerGroupOperationContext.hasCoordinatorMoved(response)) {
                     rescheduleFindCoordinatorTask(context, () -> getDescribeConsumerGroupsCall(context));
                     return;
                 }
@@ -3075,7 +3075,7 @@ public class KafkaAdminClient extends AdminClient {
                 final OffsetDeleteResponse response = (OffsetDeleteResponse) abstractResponse;
 
                 // If coordinator changed since we fetched it, retry
-                if (context.hasCoordinatorMoved(response)) {
+                if (ConsumerGroupOperationContext.hasCoordinatorMoved(response)) {
                     rescheduleFindCoordinatorTask(context, () -> getDeleteConsumerGroupOffsetsCall(context, partitions));
                     return;
                 }
@@ -3422,7 +3422,7 @@ public class KafkaAdminClient extends AdminClient {
                 final LeaveGroupResponse response = (LeaveGroupResponse) abstractResponse;
 
                 // If coordinator changed since we fetched it, retry
-                if (context.hasCoordinatorMoved(response)) {
+                if (ConsumerGroupOperationContext.hasCoordinatorMoved(response)) {
                     rescheduleFindCoordinatorTask(context, () -> getRemoveMembersFromGroupCall(context));
                     return;
                 }
