@@ -2925,7 +2925,7 @@ public class KafkaAdminClient extends AdminClient {
                 final Map<TopicPartition, OffsetAndMetadata> groupOffsetsListing = new HashMap<>();
 
                 // If coordinator changed since we fetched it, retry
-                if (context.hasCoordinatorMoved(response)) {
+                if (ConsumerGroupOperationContext.hasCoordinatorMoved(response)) {
                     rescheduleFindCoordinatorTask(context, () -> getListConsumerGroupOffsetsCall(context));
                     return;
                 }
@@ -2999,7 +2999,7 @@ public class KafkaAdminClient extends AdminClient {
                 final DeleteGroupsResponse response = (DeleteGroupsResponse) abstractResponse;
 
                 // If coordinator changed since we fetched it, retry
-                if (context.hasCoordinatorMoved(response)) {
+                if (ConsumerGroupOperationContext.hasCoordinatorMoved(response)) {
                     rescheduleFindCoordinatorTask(context, () -> getDeleteConsumerGroupsCall(context));
                     return;
                 }
